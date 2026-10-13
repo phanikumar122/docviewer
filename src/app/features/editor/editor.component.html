@@ -1,0 +1,105 @@
+<!-- Header -->
+<header class="flex items-center gap-2 border-b bg-bg px-3 py-2.5">
+  <button type="button" class="btn-icon size-9" (click)="back()" aria-label="Back"><app-icon name="arrow-left" [size]="18" /></button>
+  <input
+    type="text"
+    [value]="docName()"
+    (input)="docName.set($any($event.target).value)"
+    class="min-w-0 flex-1 rounded-[--radius-sm] border border-transparent bg-transparent px-2 py-1 text-sm font-semibold outline-none hover:border-line focus:border-line focus:bg-surface-2"
+    aria-label="Document name"
+  />
+
+  <div class="flex items-center gap-2 text-xs text-subtle">
+    @switch (saveState()) {
+      @case ('saving') { <span class="flex items-center gap-1.5"><app-spinner [size]="13" /> Saving…</span> }
+      @case ('saved') { <span class="flex items-center gap-1.5 text-success"><app-icon name="check-check" [size]="14" /> Saved</span> }
+      @case ('unsaved') { <span class="flex items-center gap-1.5"><app-icon name="circle-dashed" [size]="14" /> Unsaved</span> }
+    }
+  </div>
+
+  @if (mode() === 'code' && file()) {
+    <button type="button" class="btn btn-outline btn-sm" (click)="saveText()"><app-icon name="save" [size]="15" /> Save</button>
+  }
+
+  <div class="relative">
+    <button type="button" class="btn btn-primary btn-sm" (click)="showExport.set(!showExport())">
+      <app-icon name="file-down" [size]="15" /> Save as <app-icon name="chevron-down" [size]="14" />
+    </button>
+    @if (showExport()) {
+      <div class="absolute right-0 top-10 z-20 w-44 rounded-[--radius-md] border border-line-strong bg-bg-elevated py-1 shadow-[var(--shadow-pop)]">
+        <button type="button" class="ed-item" (click)="exportAs('html')"><app-icon name="file-code" [size]="16" /> HTML (.html)</button>
+        <button type="button" class="ed-item" (click)="exportAs('md')"><app-icon name="file-text" [size]="16" /> Markdown (.md)</button>
+        <button type="button" class="ed-item" (click)="exportAs('txt')"><app-icon name="file" [size]="16" /> Plain text (.txt)</button>
+      </div>
+    }
+  </div>
+</header>
+
+<!-- Rich toolbar -->
+@if (mode() === 'rich') {
+  <div class="flex flex-wrap items-center gap-0.5 border-b bg-surface px-2 py-1.5">
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('bold')" title="Bold"><app-icon name="bold" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('italic')" title="Italic"><app-icon name="italic" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('underline')" title="Underline"><app-icon name="underline" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('strikeThrough')" title="Strikethrough"><app-icon name="strikethrough" [size]="16" /></button>
+    <div class="mx-1 h-5 w-px bg-line"></div>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="makeHeading('H1')" title="Heading 1"><app-icon name="h1" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="makeHeading('H2')" title="Heading 2"><app-icon name="h2" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="makeHeading('H3')" title="Heading 3"><app-icon name="h3" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="makeHeading('P')" title="Paragraph"><app-icon name="type" [size]="16" /></button>
+    <div class="mx-1 h-5 w-px bg-line"></div>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('insertUnorderedList')" title="Bullet list"><app-icon name="list" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('insertOrderedList')" title="Numbered list"><app-icon name="list-ordered" [size]="16" /></button>
+    <div class="mx-1 h-5 w-px bg-line"></div>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('justifyLeft')" title="Align left"><app-icon name="align-left" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('justifyCenter')" title="Align center"><app-icon name="align-center" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('justifyRight')" title="Align right"><app-icon name="align-right" [size]="16" /></button>
+    <div class="mx-1 h-5 w-px bg-line"></div>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="addLink()" title="Insert link"><app-icon name="link" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('undo')" title="Undo"><app-icon name="undo" [size]="16" /></button>
+    <button type="button" class="btn-icon size-8" (mousedown)="$event.preventDefault()" (click)="exec('redo')" title="Redo"><app-icon name="redo" [size]="16" /></button>
+  </div>
+}
+
+<!-- Code toolbar -->
+@if (mode() === 'code' && isMarkdown()) {
+  <div class="flex items-center gap-1 border-b bg-surface px-2 py-1.5">
+    <button type="button" class="btn btn-sm" [style.background]="mdPreview() ? 'var(--surface-2)' : null" (click)="toggleMdPreview()">
+      <app-icon name="eye" [size]="15" /> {{ mdPreview() ? 'Hide preview' : 'Show preview' }}
+    </button>
+  </div>
+}
+
+<!-- Body -->
+<div class="relative min-h-0 flex-1 overflow-hidden bg-surface-2">
+  @if (loading()) {
+    <div class="flex h-full items-center justify-center gap-2 text-sm text-muted"><app-spinner [size]="18" /> Loading…</div>
+  }
+
+  @if (mode() === 'rich') {
+    <div class="h-full overflow-y-auto px-4 py-6">
+      <div
+        #rich
+        contenteditable="true"
+        (input)="onRichInput()"
+        class="prose-editor mx-auto min-h-[60vh] max-w-3xl rounded-[--radius-md] border bg-surface p-10 shadow-[var(--shadow-card)] outline-none"
+        spellcheck="true"
+      ></div>
+    </div>
+  } @else {
+    <div class="flex h-full min-h-0">
+      <textarea
+        #codeArea
+        [value]="code()"
+        (input)="onCodeInput($any($event.target).value)"
+        class="h-full flex-1 resize-none bg-surface p-5 font-mono text-sm leading-relaxed outline-none"
+        [class.border-r]="mdPreview()"
+        spellcheck="false"
+        placeholder="Start typing…"
+      ></textarea>
+      @if (isMarkdown() && mdPreview()) {
+        <article class="prose-editor h-full flex-1 overflow-y-auto bg-surface p-6" [innerHTML]="renderedPreview()"></article>
+      }
+    </div>
+  }
+</div>

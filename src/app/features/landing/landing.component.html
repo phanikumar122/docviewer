@@ -1,0 +1,247 @@
+<!-- ======================= NAV ======================= -->
+<header class="nav-blur fixed inset-x-0 top-0 z-50 border-b border-line/70">
+  <nav class="mx-auto flex h-[--nav-h] max-w-7xl items-center gap-4 px-4 sm:px-6">
+    <a routerLink="/" class="flex items-center gap-2.5">
+      <span class="grid size-9 place-items-center rounded-[--radius-sm] text-white" style="background: linear-gradient(135deg, var(--accent), var(--accent-hover))">
+        <app-icon name="files" [size]="19" />
+      </span>
+      <span class="text-[17px] font-semibold tracking-tight">DocuFlow</span>
+    </a>
+
+    <div class="ml-auto hidden items-center gap-1 md:flex">
+      <a href="#features" class="rounded-[--radius-sm] px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-fg">Features</a>
+      <a href="#tools" class="rounded-[--radius-sm] px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-fg">Tools</a>
+      <a href="#privacy" class="rounded-[--radius-sm] px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-fg">Privacy</a>
+    </div>
+
+    <a routerLink="/dashboard" class="btn btn-primary ml-auto h-10 px-4 md:ml-2">
+      Open workspace <app-icon name="arrow-right" [size]="16" />
+    </a>
+
+    <button type="button" class="btn-icon size-10 md:hidden" (click)="toggleMobile()" [attr.aria-expanded]="mobileOpen()" aria-label="Menu">
+      <app-icon [name]="mobileOpen() ? 'x' : 'menu'" [size]="22" />
+    </button>
+  </nav>
+
+  @if (mobileOpen()) {
+    <div class="border-t border-line bg-surface px-4 py-3 md:hidden">
+      <a href="#features" (click)="closeMobile()" class="block rounded-[--radius-sm] px-3 py-2.5 text-sm font-medium text-muted hover:bg-surface-2 hover:text-fg">Features</a>
+      <a href="#tools" (click)="closeMobile()" class="block rounded-[--radius-sm] px-3 py-2.5 text-sm font-medium text-muted hover:bg-surface-2 hover:text-fg">Tools</a>
+      <a href="#privacy" (click)="closeMobile()" class="block rounded-[--radius-sm] px-3 py-2.5 text-sm font-medium text-muted hover:bg-surface-2 hover:text-fg">Privacy</a>
+    </div>
+  }
+</header>
+
+<main class="pt-[--nav-h]">
+  <!-- ======================= HERO ======================= -->
+  <section class="hero-aura relative overflow-hidden">
+    <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pb-24 lg:pt-20">
+      <div data-reveal>
+        <span class="chip border border-accent/20 bg-accent-soft text-accent-soft-fg">
+          <app-icon name="shield-check" [size]="14" /> 100% local · no uploads
+        </span>
+        <h1 class="font-display mt-5 text-4xl font-bold leading-[1.06] sm:text-5xl lg:text-[3.25rem]">
+          Every document tool,<br />one private workspace.
+        </h1>
+        <p class="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+          Merge, convert, edit and read PDFs, Office files and images, all in your browser. Nothing is uploaded.
+        </p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <a routerLink="/dashboard" class="btn btn-primary h-12 px-6 text-[15px]">
+            Open workspace <app-icon name="arrow-right" [size]="18" />
+          </a>
+          <a routerLink="/tools" class="btn btn-outline h-12 px-6 text-[15px]">
+            <app-icon name="wrench" [size]="17" /> Explore tools
+          </a>
+        </div>
+      </div>
+
+      <div data-reveal class="relative">
+        <div class="frame">
+          <div class="frame-bar">
+            <span class="frame-dot"></span><span class="frame-dot"></span><span class="frame-dot"></span>
+          </div>
+          <img src="app-preview.png" width="1600" height="1000" alt="The DocuFlow workspace dashboard" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= FORMAT STRIP ======================= -->
+  <section class="border-y border-line bg-surface">
+    <div class="mx-auto max-w-7xl px-4 py-7 sm:px-6" data-reveal>
+      <p class="text-center text-xs font-semibold uppercase tracking-[0.14em] text-subtle">Opens and converts the formats you work in</p>
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+        @for (f of formats; track f) {
+          <span class="rounded-full border border-line bg-bg px-3.5 py-1.5 text-sm font-medium text-muted">{{ f }}</span>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= FEATURES (BENTO) ======================= -->
+  <section id="features" class="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
+    <div class="max-w-2xl" data-reveal>
+      <h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">Everything you do with documents, in one place</h2>
+      <p class="mt-3 text-lg text-muted">No installs, no accounts, no round trips to a server. Open a file and get to work.</p>
+    </div>
+
+    <div class="mt-10 grid grid-cols-1 gap-4 md:grid-cols-6">
+      <!-- A -->
+      <div data-reveal class="group relative overflow-hidden rounded-[--radius-xl] border border-line bg-surface p-7 shadow-[var(--shadow-xs)] md:col-span-3">
+        <div class="grid size-12 place-items-center rounded-[--radius-md] bg-accent-soft text-accent-soft-fg"><app-icon [name]="features[0].icon" [size]="24" /></div>
+        <h3 class="mt-5 text-xl font-semibold">{{ features[0].title }}</h3>
+        <p class="mt-2 max-w-md text-muted">{{ features[0].body }}</p>
+        <div class="mt-6 flex flex-wrap gap-2">
+          @for (t of ['Merge','Split','Rotate','Compress','Watermark','Organize']; track t) {
+            <span class="chip bg-surface-2">{{ t }}</span>
+          }
+        </div>
+      </div>
+      <!-- B -->
+      <div data-reveal class="relative overflow-hidden rounded-[--radius-xl] border border-line bg-surface p-7 shadow-[var(--shadow-xs)] md:col-span-3"
+           style="background-image: radial-gradient(90% 120% at 100% 0%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 60%)">
+        <div class="grid size-12 place-items-center rounded-[--radius-md] bg-accent-soft text-accent-soft-fg"><app-icon [name]="features[1].icon" [size]="24" /></div>
+        <h3 class="mt-5 text-xl font-semibold">{{ features[1].title }}</h3>
+        <p class="mt-2 max-w-md text-muted">{{ features[1].body }}</p>
+        <div class="mt-6 flex flex-wrap gap-2">
+          @for (t of ['PDF','DOCX','XLSX','PPTX','Images','Markdown']; track t) {
+            <span class="chip bg-surface-2 font-mono text-[11px]">{{ t }}</span>
+          }
+        </div>
+      </div>
+      <!-- C -->
+      <div data-reveal class="rounded-[--radius-xl] border border-line bg-surface p-7 shadow-[var(--shadow-xs)] md:col-span-2">
+        <div class="grid size-11 place-items-center rounded-[--radius-md] bg-accent-soft text-accent-soft-fg"><app-icon [name]="features[2].icon" [size]="22" /></div>
+        <h3 class="mt-5 text-lg font-semibold">{{ features[2].title }}</h3>
+        <p class="mt-2 text-sm leading-relaxed text-muted">{{ features[2].body }}</p>
+      </div>
+      <!-- D (dark) -->
+      <div data-reveal class="ink relative overflow-hidden rounded-[--radius-xl] p-7 shadow-[var(--shadow-card)] md:col-span-2">
+        <div class="grid size-11 place-items-center rounded-[--radius-md]" style="background: color-mix(in oklab, var(--accent) 22%, transparent); color: #d7f5e6"><app-icon [name]="features[4].icon" [size]="22" /></div>
+        <h3 class="mt-5 text-lg font-semibold">{{ features[4].title }}</h3>
+        <p class="mt-2 text-sm leading-relaxed" style="color: var(--ink-fg-muted)">{{ features[4].body }}</p>
+      </div>
+      <!-- E -->
+      <div data-reveal class="rounded-[--radius-xl] border border-line bg-surface p-7 shadow-[var(--shadow-xs)] md:col-span-2">
+        <div class="grid size-11 place-items-center rounded-[--radius-md] bg-accent-soft text-accent-soft-fg"><app-icon [name]="features[3].icon" [size]="22" /></div>
+        <h3 class="mt-5 text-lg font-semibold">{{ features[3].title }}</h3>
+        <p class="mt-2 text-sm leading-relaxed text-muted">{{ features[3].body }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= DEEP DIVE (split) ======================= -->
+  <section class="bg-surface">
+    <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:py-28">
+      <div data-reveal class="order-2 lg:order-1">
+        <div class="frame">
+          <div class="frame-bar"><span class="frame-dot"></span><span class="frame-dot"></span><span class="frame-dot"></span></div>
+          <img src="app-tools.png" width="1600" height="1000" alt="DocuFlow PDF tools catalog" />
+        </div>
+      </div>
+      <div data-reveal class="order-1 lg:order-2">
+        <h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">A full toolkit, not a landing page of promises</h2>
+        <p class="mt-4 text-lg leading-relaxed text-muted">
+          More than twenty tools ship ready to use. Each one opens your file, does one job well and hands you the result, right in the browser.
+        </p>
+        <ul class="mt-7 grid gap-4 sm:grid-cols-2">
+          @for (f of features; track f.title) {
+            <li class="flex gap-3">
+              <span class="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-accent-soft text-accent-soft-fg"><app-icon name="check" [size]="15" /></span>
+              <span class="text-sm leading-snug">
+                <span class="font-semibold">{{ f.title }}</span>
+                <span class="mt-0.5 block text-muted">{{ f.body }}</span>
+              </span>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= PRIVACY (dark band) ======================= -->
+  <section id="privacy" class="ink scroll-mt-20">
+    <div class="mx-auto max-w-5xl px-4 py-24 text-center sm:px-6 lg:py-32" data-reveal>
+      <span class="chip border border-white/15 bg-white/5" style="color: var(--ink-fg)"><app-icon name="lock" [size]="14" /> Yours, and only yours</span>
+      <h2 class="font-display mx-auto mt-6 max-w-3xl text-3xl font-bold leading-tight sm:text-5xl">Your documents never leave your device</h2>
+      <p class="mx-auto mt-5 max-w-2xl text-lg leading-relaxed" style="color: var(--ink-fg-muted)">
+        DocuFlow processes files in the browser and stores them locally with IndexedDB. There is no server to trust and no account to create.
+      </p>
+      <div class="mx-auto mt-12 grid max-w-3xl gap-5 sm:grid-cols-3">
+        @for (p of [
+          {i:'shield-check', t:'No uploads', b:'Files are read and written on your machine.'},
+          {i:'zap', t:'Instant', b:'No queue, no wait, no network round trip.'},
+          {i:'hard-drive', t:'Local library', b:'Your files stay saved between visits.'}
+        ]; track p.t) {
+          <div class="ink-card rounded-[--radius-lg] p-6 text-left">
+            <app-icon [name]="$any(p.i)" [size]="22" style="color: color-mix(in oklab, var(--accent) 60%, #fff)" />
+            <div class="mt-4 font-semibold">{{ p.t }}</div>
+            <p class="mt-1 text-sm" style="color: var(--ink-fg-muted)">{{ p.b }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= TOOLS (grouped) ======================= -->
+  <section id="tools" class="mx-auto max-w-7xl scroll-mt-24 px-4 py-20 sm:px-6 lg:py-28">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" data-reveal>
+      <div class="max-w-xl">
+        <h2 class="font-display text-3xl font-bold tracking-tight sm:text-4xl">The whole catalog</h2>
+        <p class="mt-3 text-lg text-muted">Grouped by what you need to get done.</p>
+      </div>
+      <a routerLink="/tools" class="btn btn-outline h-11 self-start px-5 sm:self-auto">Browse all tools <app-icon name="arrow-right" [size]="16" /></a>
+    </div>
+
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      @for (g of toolGroups; track g.label) {
+        <div data-reveal class="rounded-[--radius-xl] border border-line bg-surface p-6 shadow-[var(--shadow-xs)]">
+          <div class="flex items-center gap-2.5">
+            <span class="grid size-9 place-items-center rounded-[--radius-sm] bg-accent-soft text-accent-soft-fg"><app-icon [name]="g.icon" [size]="18" /></span>
+            <h3 class="text-base font-semibold">{{ g.label }}</h3>
+          </div>
+          <ul class="mt-4 flex flex-col gap-2.5">
+            @for (item of g.items; track item) {
+              <li class="flex items-center gap-2 text-sm text-muted">
+                <app-icon name="check" [size]="15" class="text-accent" /> {{ item }}
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ======================= FINAL CTA ======================= -->
+  <section class="px-4 pb-20 sm:px-6 lg:pb-28">
+    <div class="cta-band relative mx-auto max-w-7xl overflow-hidden rounded-[--radius-xl] px-6 py-16 text-center sm:py-20" data-reveal
+         style="box-shadow: var(--shadow-card)">
+      <h2 class="font-display mx-auto max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">Open your document workspace</h2>
+      <p class="mx-auto mt-4 max-w-xl text-base" style="color: color-mix(in oklab, #fff 86%, transparent)">
+        No sign up. Nothing to install. Your files stay on your device.
+      </p>
+      <a routerLink="/dashboard" class="btn mt-8 h-12 bg-white px-7 text-[15px] font-semibold text-accent-soft-fg hover:bg-white/90">
+        Open workspace <app-icon name="arrow-right" [size]="18" />
+      </a>
+    </div>
+  </section>
+</main>
+
+<!-- ======================= FOOTER ======================= -->
+<footer class="border-t border-line bg-surface">
+  <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between">
+    <div class="flex items-center gap-2.5">
+      <span class="grid size-8 place-items-center rounded-[--radius-sm] text-white" style="background: linear-gradient(135deg, var(--accent), var(--accent-hover))"><app-icon name="files" [size]="16" /></span>
+      <span class="font-semibold tracking-tight">DocuFlow</span>
+    </div>
+    <nav class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+      <a routerLink="/dashboard" class="transition-colors hover:text-fg">Dashboard</a>
+      <a routerLink="/tools" class="transition-colors hover:text-fg">PDF Tools</a>
+      <a routerLink="/converters" class="transition-colors hover:text-fg">Converters</a>
+      <a routerLink="/settings" class="transition-colors hover:text-fg">Settings</a>
+    </nav>
+    <p class="text-sm text-subtle">&copy; {{ year }} DocuFlow. Runs entirely in your browser.</p>
+  </div>
+</footer>
+

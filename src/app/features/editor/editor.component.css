@@ -1,0 +1,50 @@
+.ed-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  text-align: left;
+  transition: background-color 0.12s;
+}
+.ed-item:hover {
+  background-color: var(--surface-2);
+}
+
+.prose-editor {
+  color: var(--fg);
+  line-height: 1.7;
+}
+.prose-editor:focus {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+.prose-editor :where(h1, h2, h3, h4) {
+  font-weight: 650;
+  margin: 1.2em 0 0.5em;
+  line-height: 1.25;
+}
+.prose-editor h1 { font-size: 1.7em; }
+.prose-editor h2 { font-size: 1.35em; }
+.prose-editor h3 { font-size: 1.12em; }
+.prose-editor p { margin: 0.7em 0; }
+.prose-editor a { color: var(--accent); text-decoration: underline; }
+.prose-editor ul, .prose-editor ol { margin: 0.6em 0; padding-left: 1.6em; }
+.prose-editor ul { list-style: disc; }
+.prose-editor ol { list-style: decimal; }
+.prose-editor blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1em;
+  color: var(--fg-muted);
+  margin: 0.8em 0;
+}
+.prose-editor code {
+  background: var(--surface-2);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.prose-editor:empty::before {
+  content: 'Start writing…';
+  color: var(--fg-subtle);
+}

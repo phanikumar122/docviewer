@@ -1,0 +1,432 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ *
+ * DocuFlow design system — "Liquid Glass" (light)
+ * Frosted, translucent surfaces floating over a soft emerald aurora.
+ * Semantic tokens are CSS variables exposed to Tailwind via
+ * `@theme inline`, so bg-surface / bg-bg-elevated / border-line /
+ * text-accent, shadows and radii all resolve from one place.
+ * Reskin by editing THIS file.
+ * ------------------------------------------------------------------ */
+
+:root {
+  /* ---- Base canvas (sits under the aurora layer painted in @layer base) ---- */
+  --bg-base: #e8f1ec;
+  /* bg is a translucent veil so the aurora reads through app chrome */
+  --bg: rgba(236, 244, 240, 0.55);
+
+  /* ---- Frosted glass surfaces (translucent white, blurred in use) ---- */
+  --bg-elevated: rgba(255, 255, 255, 0.74);
+  --surface: rgba(255, 255, 255, 0.6);
+  --surface-2: rgba(255, 255, 255, 0.46);
+  --surface-3: rgba(255, 255, 255, 0.7);
+
+  /* ---- Hairlines + glass edges ---- */
+  --line: rgba(13, 40, 29, 0.1);
+  --line-strong: rgba(13, 40, 29, 0.16);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-hi: rgba(255, 255, 255, 0.72);
+
+  /* ---- Ink ---- */
+  --fg: #0b1a14;
+  --fg-muted: #42564d;
+  --fg-subtle: #70857b;
+
+  /* ---- Emerald accent ---- */
+  --accent: #0e9f6e;
+  --accent-hover: #0a8a5f;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(14, 159, 110, 0.14);
+  --accent-soft-fg: #097350;
+  --success: #0e9f6e;
+  --warning: #bd7b00;
+  --danger: #e04545;
+  --info: #0e9f6e;
+  --ring: #45c48f;
+
+  /* ---- Ink-on-emerald for dark hero / contrast sections ---- */
+  --ink: #0a1711;
+  --ink-2: #0f2219;
+  --ink-line: rgba(226, 243, 234, 0.14);
+  --ink-fg: #eaf3ee;
+  --ink-fg-muted: #9db5a8;
+
+  /* ---- Glass mechanics ---- */
+  --glass-blur: saturate(175%) blur(20px);
+  --glass-blur-sm: saturate(160%) blur(12px);
+
+  /* Shadows tinted emerald-dark so glass floats in the page */
+  --shadow-color: 156 46% 11%;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-ring: var(--ring);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-line: var(--ink-line);
+  --color-ink-fg: var(--ink-fg);
+  --color-ink-fg-muted: var(--ink-fg-muted);
+
+  /* Softly rounded — kept generous for the liquid-glass look */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.7rem;
+  --radius-md: 0.9rem;
+  --radius-lg: 1.15rem;
+  --radius-xl: 1.5rem;
+
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display:
+    'Sora', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --shadow-xs: 0 1px 2px -1px hsl(var(--shadow-color) / 0.12),
+    0 1px 1px hsl(var(--shadow-color) / 0.05);
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.07),
+    0 4px 10px -3px hsl(var(--shadow-color) / 0.1);
+  --shadow-card: 0 1px 0 0 var(--glass-hi) inset,
+    0 1px 2px hsl(var(--shadow-color) / 0.06),
+    0 10px 28px -10px hsl(var(--shadow-color) / 0.16),
+    0 24px 50px -24px hsl(var(--shadow-color) / 0.22);
+  --shadow-pop: 0 1px 0 0 var(--glass-hi) inset,
+    0 4px 12px -4px hsl(var(--shadow-color) / 0.16),
+    0 18px 40px -12px hsl(var(--shadow-color) / 0.3),
+    0 36px 70px -28px hsl(var(--shadow-color) / 0.34);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg-base);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  /* Living aurora backdrop — the colour that glass refracts. Fixed, behind
+   * all content, slowly drifting (frozen for reduced-motion by the rule
+   * at the bottom of this file). */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -12%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(42% 44% at 14% 10%, rgba(16, 185, 129, 0.28), transparent 60%),
+      radial-gradient(46% 46% at 88% 6%, rgba(45, 212, 191, 0.24), transparent 60%),
+      radial-gradient(52% 52% at 50% 116%, rgba(96, 165, 250, 0.16), transparent 55%),
+      radial-gradient(40% 42% at 72% 64%, rgba(14, 159, 110, 0.16), transparent 60%);
+    filter: blur(14px) saturate(118%);
+    animation: aurora-drift 26s ease-in-out infinite alternate;
+  }
+
+  @keyframes aurora-drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-2%, 1.6%, 0) scale(1.06);
+    }
+    100% {
+      transform: translate3d(1.8%, -1.4%, 0) scale(1.04);
+    }
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 32%, transparent);
+    color: var(--fg);
+  }
+
+  /* Scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--fg-subtle);
+    background-clip: content-box;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Blanket-frost every translucent surface utility used across the app
+ * (sidebar, cards, bento tiles, command palette, menus, toasts, inputs…).
+ * Unlayered so it layers on top of Tailwind's background-color utilities
+ * without clobbering their own box-shadows. */
+.bg-surface,
+.bg-surface-2,
+.bg-surface-3,
+.bg-bg-elevated {
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+/* Reusable component classes (kept small; most styling stays in templates) */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-[--radius-sm] text-sm font-medium
+      select-none disabled:opacity-50 disabled:pointer-events-none
+      focus-visible:outline-2 focus-visible:outline-offset-2;
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.22s ease,
+      transform 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+    outline-color: var(--ring);
+  }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(0.5px) scale(0.985);
+  }
+
+  .btn-primary {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in oklab, #fff 14%, var(--accent)),
+      var(--accent)
+    );
+    color: var(--accent-fg);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, #fff 34%, transparent),
+      0 1px 2px hsl(var(--shadow-color) / 0.24),
+      0 6px 16px -5px color-mix(in oklab, var(--accent) 55%, transparent);
+  }
+  /* Liquid specular sweep on hover */
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.4) 48%,
+      transparent 62%
+    );
+    transform: translateX(-130%);
+    transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-primary:hover:not(:disabled)::after {
+    transform: translateX(130%);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in oklab, #fff 10%, var(--accent-hover)),
+      var(--accent-hover)
+    );
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklab, #fff 30%, transparent),
+      0 8px 22px -4px color-mix(in oklab, var(--accent) 62%, transparent);
+  }
+
+  .btn-ghost {
+    color: var(--fg);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--surface-2);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    backdrop-filter: var(--glass-blur-sm);
+  }
+
+  .btn-outline {
+    border: 1px solid var(--glass-border);
+    background-color: var(--surface);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    backdrop-filter: var(--glass-blur-sm);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-hi),
+      var(--shadow-xs);
+  }
+  .btn-outline:hover:not(:disabled) {
+    background-color: var(--surface-3);
+    border-color: color-mix(in oklab, var(--accent) 40%, var(--glass-border));
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-hi),
+      var(--shadow-sm);
+  }
+
+  .btn-sm {
+    @apply h-8 px-3.5;
+  }
+  .btn-md {
+    @apply h-9.5 px-4;
+  }
+  .btn-icon {
+    @apply inline-flex items-center justify-center rounded-[--radius-sm];
+    transition:
+      background-color 0.15s ease,
+      transform 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-icon:hover {
+    background-color: var(--surface-2);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    backdrop-filter: var(--glass-blur-sm);
+    transform: translateY(-1px);
+  }
+  .btn-icon:active {
+    transform: translateY(0.5px) scale(0.96);
+  }
+
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-hi),
+      var(--shadow-xs);
+  }
+
+  .input {
+    @apply w-full rounded-[--radius-sm] px-3 text-sm transition-colors;
+    background-color: var(--surface-2);
+    border: 1px solid var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    backdrop-filter: var(--glass-blur-sm);
+    color: var(--fg);
+  }
+  .input::placeholder {
+    color: var(--fg-subtle);
+  }
+  .input:focus {
+    border-color: var(--accent);
+    outline: none;
+    background-color: var(--surface-3);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+    background-color: var(--surface-2);
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    backdrop-filter: var(--glass-blur-sm);
+    border: 1px solid var(--glass-border);
+    color: var(--fg-muted);
+  }
+
+  /* Opt-in glass panel helper for anything that wants the full treatment */
+  .glass {
+    background-color: var(--surface);
+    border: 1px solid var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-hi),
+      var(--shadow-card);
+  }
+}
+
+/* Motion safety: honour reduced-motion globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * pdf.js text layer — must be global (spans are created at runtime,
+ * so Angular's scoped styles would not reach them).
+ * ------------------------------------------------------------------ */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 2;
+}
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.textLayer span.markedContent {
+  top: 0;
+  height: 0;
+}
+.textLayer .highlight {
+  margin: -1px;
+  padding: 1px;
+  background-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  border-radius: 3px;
+}
+.textLayer .highlight.selected {
+  background-color: color-mix(in oklab, var(--accent) 65%, transparent);
+}
+.textLayer ::selection {
+  background: color-mix(in oklab, var(--accent) 45%, transparent);
+}
+.textLayer br::selection {
+  background: transparent;
+}
+
+
+

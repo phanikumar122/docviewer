@@ -1,0 +1,476 @@
+@if (!ready()) {
+  <!-- Entry: pick a PDF to edit -->
+  <div class="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+    <app-page-header
+      title="Edit PDF"
+      subtitle="Cover existing content and add new text, drawings, shapes or images — then export a fresh PDF. Everything happens locally."
+      icon="square-pen"
+      [crumbs]="[{ label: 'PDF Tools', route: '/tools' }, { label: 'Edit PDF' }]"
+    />
+
+    @if (loading()) {
+      <div class="flex items-center justify-center gap-2 py-16 text-sm text-muted">
+        <app-spinner [size]="18" /> Opening PDF…
+      </div>
+    } @else {
+      <app-pdf-source (itemsChange)="onSource($event)" />
+
+      <div class="mt-6 grid gap-3 sm:grid-cols-3">
+        @for (f of features; track f.title) {
+          <div class="card flex items-start gap-2.5 p-3">
+            <app-icon [name]="f.icon" [size]="18" class="mt-0.5 text-accent-soft-fg" />
+            <div>
+              <div class="text-sm font-medium">{{ f.title }}</div>
+              <p class="mt-0.5 text-xs text-muted">{{ f.desc }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <p class="mt-5 flex items-start gap-2 rounded-[--radius-md] border border-info/40 bg-[color-mix(in_oklab,var(--info)_8%,transparent)] p-3 text-xs text-muted">
+        <app-icon name="info" [size]="15" class="mt-0.5 shrink-0 text-info" />
+        <span>To change words already in the page, open <strong>Find &amp; replace</strong> (top toolbar). With the local engine running (<code>pnpm engine</code>) it does a <strong>true in-place edit</strong> — the original glyphs are removed and the replacement is re-typed in a matching font. Without it, you get a browser cover-&-restamp, or do it by hand with a <strong>Whiteout</strong> box plus a <strong>Text</strong> box.</span>
+      </p>
+    }
+  </div>
+} @else {
+  <!-- Toolbar -->
+  <header class="flex flex-wrap items-center gap-2 border-b bg-bg px-3 py-2">
+    <button type="button" class="btn-icon size-9" (click)="exit()" title="Back to tools"><app-icon name="arrow-left" [size]="18" /></button>
+    <div class="min-w-0 max-w-[14rem] flex-1">
+      <div class="truncate text-sm font-semibold">{{ fileName() }}</div>
+      <div class="text-xs text-subtle">Editing · page {{ page() }} of {{ numPages() }}</div>
+    </div>
+
+    <div class="mx-1 flex items-center gap-0.5">
+      <button type="button" class="btn-icon size-9 disabled:opacity-40" [disabled]="!canUndo()" (click)="undo()" title="Undo (Ctrl+Z)"><app-icon name="undo" [size]="17" /></button>
+      <button type="button" class="btn-icon size-9 disabled:opacity-40" [disabled]="!canRedo()" (click)="redo()" title="Redo (Ctrl+Shift+Z)"><app-icon name="redo" [size]="17" /></button>
+      <button
+        type="button"
+        class="btn btn-sm gap-1.5"
+        [class.btn-primary]="showFindReplace()"
+        [class.btn-outline]="!showFindReplace()"
+        (click)="toggleFindReplace()"
+        title="Find & replace text in the PDF"
+        [attr.aria-pressed]="showFindReplace()"
+      ><app-icon name="replace" [size]="16" /><span class="hidden sm:inline">Find &amp; replace</span></button>
+      <button
+        type="button"
+        class="btn btn-sm gap-1.5"
+        [class.btn-primary]="reflowMode()"
+        [class.btn-outline]="!reflowMode()"
+        (click)="toggleReflow()"
+        title="Reflow: click a paragraph to rewrite &amp; rewrap it (needs the engine)"
+        [attr.aria-pressed]="reflowMode()"
+      ><app-icon name="list" [size]="16" /><span class="hidden sm:inline">Reflow ¶</span></button>
+    </div>
+
+    <div class="flex items-center gap-0.5 rounded-[--radius-sm] border px-1 py-0.5">
+      <button type="button" class="btn-icon size-8 disabled:opacity-40" [disabled]="page() <= 1" (click)="go(-1)" title="Previous page"><app-icon name="chevron-left" [size]="16" /></button>
+      <input class="w-9 bg-transparent text-center text-sm tabular-nums outline-none" [value]="page()" (change)="onPageInput($any($event.target).value)" />
+      <span class="pr-1 text-sm text-subtle">/ {{ numPages() }}</span>
+      <button type="button" class="btn-icon size-8 disabled:opacity-40" [disabled]="page() >= numPages()" (click)="go(1)" title="Next page"><app-icon name="chevron-right" [size]="16" /></button>
+    </div>
+
+    <div class="flex items-center gap-0.5 rounded-[--radius-sm] border px-1 py-0.5">
+      <button type="button" class="btn-icon size-8" (click)="zoom(-0.15)" title="Zoom out"><app-icon name="zoom-out" [size]="16" /></button>
+      <button type="button" class="min-w-[3rem] text-center text-xs tabular-nums text-muted hover:text-fg" (click)="toggleFit()" title="Fit width">{{ (scale() * 100).toFixed(0) }}%</button>
+      <button type="button" class="btn-icon size-8" (click)="zoom(0.15)" title="Zoom in"><app-icon name="zoom-in" [size]="16" /></button>
+    </div>
+
+    <div class="ml-auto flex items-center gap-2">
+      <button type="button" class="btn btn-outline btn-sm" (click)="startOver()" title="Open a different PDF"><app-icon name="replace" [size]="15" /><span class="hidden lg:inline">Change file</span></button>
+      @if (canOverwrite()) {
+        <button type="button" class="btn btn-outline btn-sm" [disabled]="busy() || !hasEdits()" (click)="saveToOriginal()"><app-icon name="save" [size]="15" /><span class="hidden sm:inline">Save</span></button>
+      }
+      <button type="button" class="btn btn-primary btn-md" [disabled]="busy() || !hasEdits()" (click)="exportPdf()">
+        @if (busy()) { <app-spinner [size]="16" /> } @else { <app-icon name="download" [size]="16" /> }
+        Export PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Body: tool rail · canvas · properties -->
+  <div class="flex min-h-0 flex-1">
+    <!-- Tool rail -->
+    <nav class="flex w-14 shrink-0 flex-col items-center gap-1 border-r bg-bg py-3">
+      @for (t of tools; track t.tool) {
+        <button
+          type="button"
+          class="grid size-10 place-items-center rounded-[--radius-md] transition-colors"
+          [style.background]="tool() === t.tool ? 'var(--accent-soft)' : null"
+          [style.color]="tool() === t.tool ? 'var(--accent-soft-fg)' : null"
+          [class.hover:bg-surface-2]="tool() !== t.tool"
+          (click)="setTool(t.tool)"
+          [title]="t.label"
+          [attr.aria-pressed]="tool() === t.tool"
+        >
+          <app-icon [name]="t.icon" [size]="19" />
+        </button>
+      }
+    </nav>
+
+    <!-- Canvas scroll area -->
+    <div class="relative min-w-0 flex-1 overflow-auto bg-surface-2">
+      <div class="min-h-full w-full p-6">
+        <div
+          #stage
+          data-testid="pdf-stage"
+          class="relative mx-auto select-none shadow-[var(--shadow-pop)]"
+          [style.width.px]="cssW()"
+          [style.height.px]="cssH()"
+          [style.cursor]="isCreateTool() ? 'crosshair' : 'text'"
+          (pointerdown)="onSurfacePointerDown($event)"
+        >
+          <canvas #canvas class="absolute left-0 top-0 bg-white"></canvas>
+
+          <!-- Vector layer: pen + line -->
+          <svg class="pointer-events-none absolute left-0 top-0" [attr.width]="cssW()" [attr.height]="cssH()" [attr.viewBox]="'0 0 ' + pageW() + ' ' + pageH()">
+            @for (a of pageAnns(); track a.id) {
+              @if (a.type === 'pen') {
+                <polyline
+                  [attr.points]="penPath(a)"
+                  fill="none"
+                  [attr.stroke]="a.color"
+                  [attr.stroke-width]="a.width"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  [style.pointer-events]="isCreateTool() ? 'none' : 'stroke'"
+                  [style.cursor]="'move'"
+                  (pointerdown)="onAnnPointerDown($event, a)"
+                />
+              } @else if (a.type === 'line') {
+                <line
+                  [attr.x1]="a.x1" [attr.y1]="a.y1" [attr.x2]="a.x2" [attr.y2]="a.y2"
+                  [attr.stroke]="a.color" [attr.stroke-width]="a.width" stroke-linecap="round"
+                  [style.pointer-events]="isCreateTool() ? 'none' : 'stroke'"
+                  [style.cursor]="'move'"
+                  (pointerdown)="onAnnPointerDown($event, a)"
+                />
+              }
+            }
+          </svg>
+
+          <!-- HTML layer: text / whiteout / highlight / rect / image + handles -->
+          @for (a of pageAnns(); track a.id) {
+            @switch (a.type) {
+              @case ('pen') {}
+              @case ('line') {}
+              @case ('text') {
+                @if (editingId() === a.id) {
+                  <div
+                    [id]="'ann-' + a.id"
+                    contenteditable="true"
+                    class="ann-text absolute outline-none"
+                    [style.left.px]="a.x * scale()" [style.top.px]="a.y * scale()" [style.width.px]="a.w * scale()"
+                    [style.font-size.px]="a.fontSize * scale()" [style.color]="a.color"
+                    [style.font-family]="fontFamilyCss(a.font)"
+                    [style.font-weight]="a.bold ? '700' : '400'" [style.font-style]="a.italic ? 'italic' : 'normal'"
+                    (input)="onTextInput($event, a)"
+                    (blur)="stopEditing()"
+                  ></div>
+                } @else {
+                  <div
+                    class="ann-text absolute"
+                    [class.ring-sel]="selectedId() === a.id"
+                    [style.left.px]="a.x * scale()" [style.top.px]="a.y * scale()" [style.width.px]="a.w * scale()"
+                    [style.font-size.px]="a.fontSize * scale()" [style.color]="a.color"
+                    [style.font-family]="fontFamilyCss(a.font)"
+                    [style.font-weight]="a.bold ? '700' : '400'" [style.font-style]="a.italic ? 'italic' : 'normal'"
+                    [style.pointer-events]="isCreateTool() ? 'none' : 'auto'"
+                    [style.cursor]="'move'"
+                    (pointerdown)="onAnnPointerDown($event, a)"
+                    (dblclick)="startEditing(a.id)"
+                  >{{ a.text }}</div>
+                }
+              }
+              @default {
+                <div
+                  class="absolute"
+                  [class.ring-sel]="selectedId() === a.id"
+                  [style.left.px]="box(a).x * scale()" [style.top.px]="box(a).y * scale()"
+                  [style.width.px]="box(a).w * scale()" [style.height.px]="box(a).h * scale()"
+                  [style.pointer-events]="isCreateTool() ? 'none' : 'auto'"
+                  [style.cursor]="'move'"
+                  (pointerdown)="onAnnPointerDown($event, a)"
+                >
+                  @if (a.type === 'image') {
+                    <img [src]="a.dataUrl" alt="" class="h-full w-full object-fill" draggable="false" />
+                  } @else {
+                    <div class="h-full w-full"
+                      [style.background]="a.type === 'rect' ? 'transparent' : a.color"
+                      [style.opacity]="a.type === 'rect' ? 1 : a.opacity"
+                      [style.border]="a.type === 'rect' ? ((a.strokeWidth * scale()) + 'px solid ' + a.color) : null"
+                    ></div>
+                  }
+                </div>
+              }
+            }
+          }
+
+          <!-- Selection handles (select tool only) -->
+          @if (selected(); as sel) {
+            @if (!isCreateTool()) {
+              @if (sel.type === 'line') {
+                <div class="handle" [style.cursor]="'move'" [style.left.px]="sel.x1 * scale()" [style.top.px]="sel.y1 * scale()" (pointerdown)="onLinePtPointerDown($event, sel, 1)"></div>
+                <div class="handle" [style.cursor]="'move'" [style.left.px]="sel.x2 * scale()" [style.top.px]="sel.y2 * scale()" (pointerdown)="onLinePtPointerDown($event, sel, 2)"></div>
+              } @else if (sel.type !== 'pen') {
+                @for (c of corners; track c) {
+                  <div
+                    class="handle"
+                    [style.cursor]="cornerCursor(c)"
+                    [style.left.px]="(box(sel).x + (c[1] === 'e' ? box(sel).w : 0)) * scale()"
+                    [style.top.px]="(box(sel).y + (c[0] === 's' ? box(sel).h : 0)) * scale()"
+                    (pointerdown)="onHandlePointerDown($event, sel, c)"
+                  ></div>
+                }
+              }
+            }
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Properties / results panel -->
+    <aside class="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-l bg-bg p-4">
+      @if (reflowMode()) {
+        <div class="space-y-2.5 rounded-[--radius-md] border border-accent/40 bg-[color-mix(in_oklab,var(--accent)_7%,transparent)] p-3">
+          <div class="flex items-center justify-between">
+            <h2 class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-subtle">
+              <app-icon name="list" [size]="14" /> Reflow paragraph
+            </h2>
+            <button type="button" class="btn-icon size-6" (click)="toggleReflow()" title="Close"><app-icon name="x" [size]="14" /></button>
+          </div>
+          @if (engineStatus() !== 'up') {
+            <p class="text-[11px] leading-snug text-muted">Reflow uses the local engine. Start it with <code class="select-all rounded bg-bg px-1 py-0.5">pnpm engine</code>, then it rewraps edited text in place.</p>
+          } @else if (!reflowSel()) {
+            <p class="text-[11px] leading-snug text-muted">Click a paragraph in the page. Its text loads here; edit it and the engine rewrites &amp; <strong>rewraps</strong> it inside the same box — a true text edit, not an overlay.</p>
+          } @else {
+            <label class="block text-[11px] font-medium text-muted">Paragraph text</label>
+            <textarea rows="6" class="input py-2 leading-snug" [value]="reflowSel()!.text" (input)="updateReflowText($any($event.target).value)"></textarea>
+            <div class="space-y-1.5 rounded-[--radius-sm] border border-line bg-surface p-2 text-xs">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted font-medium">Font size</span>
+                <input type="number" class="input h-7 w-16 text-xs text-right" [value]="reflowSel()!.fontSize" (input)="updateReflowSize($any($event.target).value)" min="5" max="96" step="0.5" />
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted font-medium">Style</span>
+                <div class="flex items-center gap-1">
+                  <button type="button" class="btn btn-xs rounded px-2 py-0.5 capitalize"
+                    [class.btn-primary]="reflowSel()!.font === 'sans'" [class.btn-outline]="reflowSel()!.font !== 'sans'"
+                    (click)="updateReflowFont('sans')">Sans</button>
+                  <button type="button" class="btn btn-xs rounded px-2 py-0.5 capitalize font-serif"
+                    [class.btn-primary]="reflowSel()!.font === 'serif'" [class.btn-outline]="reflowSel()!.font !== 'serif'"
+                    (click)="updateReflowFont('serif')">Serif</button>
+                  <button type="button" class="btn btn-xs rounded px-2 py-0.5 capitalize font-mono"
+                    [class.btn-primary]="reflowSel()!.font === 'mono'" [class.btn-outline]="reflowSel()!.font !== 'mono'"
+                    (click)="updateReflowFont('mono')">Mono</button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted font-medium">Format &amp; Color</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" class="btn btn-outline btn-xs size-7 p-0" [style.background]="reflowSel()!.bold ? 'var(--accent-soft)' : null" (click)="toggleReflowBold()" title="Bold"><app-icon name="bold" [size]="13" /></button>
+                  <button type="button" class="btn btn-outline btn-xs size-7 p-0" [style.background]="reflowSel()!.italic ? 'var(--accent-soft)' : null" (click)="toggleReflowItalic()" title="Italic"><app-icon name="italic" [size]="13" /></button>
+                  <input type="color" [value]="reflowSel()!.color" (input)="updateReflowColor($any($event.target).value)" class="size-7 rounded border border-line bg-surface cursor-pointer p-0" title="Font colour" />
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" class="btn btn-primary btn-sm flex-1" [disabled]="serverBusy()" (click)="applyReflow()">
+                @if (serverBusy()) { <app-spinner [size]="14" /> } @else { <app-icon name="check" [size]="14" /> } Apply reflow
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" (click)="cancelReflow()">Clear</button>
+            </div>
+          }
+        </div>
+      }
+
+      @if (showFindReplace()) {
+        <div class="space-y-2.5 rounded-[--radius-md] border bg-surface-2 p-3">
+          <div class="flex items-center justify-between">
+            <h2 class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-subtle">
+              <app-icon name="replace" [size]="14" /> Find &amp; replace
+            </h2>
+            <button type="button" class="btn-icon size-6" (click)="showFindReplace.set(false)" title="Close"><app-icon name="x" [size]="14" /></button>
+          </div>
+
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-muted">Find text</span>
+            <input class="input h-9" [value]="findText()" (input)="findText.set($any($event.target).value)" (keydown.enter)="serverMode() ? replaceOnServer() : runFindReplace()" placeholder="e.g. phani" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-muted">Replace with</span>
+            <input class="input h-9" [value]="replaceText()" (input)="replaceText.set($any($event.target).value)" (keydown.enter)="serverMode() ? replaceOnServer() : runFindReplace()" placeholder="e.g. phanj (blank = erase)" />
+          </label>
+
+          <!-- Engine mode: true in-place server edit (headline) vs. browser cover-&-restamp -->
+          <div class="rounded-[--radius-md] border border-accent/40 bg-[color-mix(in_oklab,var(--accent)_7%,transparent)] p-2.5">
+            <label class="flex items-start gap-2 text-xs">
+              <input type="checkbox" class="mt-0.5" data-testid="engine-toggle" [checked]="serverMode()" (change)="setServerMode($any($event.target).checked)" />
+              <span class="min-w-0">
+                <span class="flex flex-wrap items-center gap-1.5 font-semibold text-fg">
+                  True in-place edit
+                  @switch (engineStatus()) {
+                    @case ('up') { <span class="inline-flex items-center gap-1 rounded-full bg-success/15 px-1.5 py-px text-[10px] font-medium text-success"><span class="size-1.5 rounded-full bg-success"></span>engine running</span> }
+                    @case ('down') { <span class="inline-flex items-center gap-1 rounded-full bg-danger/15 px-1.5 py-px text-[10px] font-medium text-danger"><span class="size-1.5 rounded-full bg-danger"></span>engine offline</span> }
+                    @default { <span class="inline-flex items-center gap-1 text-[10px] font-normal text-subtle"><app-spinner [size]="10" /> checking…</span> }
+                  }
+                </span>
+                <span class="mt-0.5 block text-[11px] leading-snug text-muted">Removes the original glyphs and re-types the replacement in a matching font — a real edit, not a cover box.</span>
+              </span>
+            </label>
+
+            @if (serverMode() && engineStatus() === 'down') {
+              <div class="mt-2 rounded-[--radius-sm] border border-danger/40 bg-danger/5 p-2 text-[11px] leading-snug text-muted">
+                <p class="font-medium text-fg">The local engine isn't running.</p>
+                <p class="mt-0.5">Start it, then re-check:</p>
+                <code class="mt-1 block select-all rounded bg-bg px-1.5 py-1 text-[11px] text-fg">pnpm engine</code>
+                <div class="mt-1.5 flex gap-1.5">
+                  <button type="button" class="btn btn-outline btn-sm" (click)="copyEngineCmd()"><app-icon name="copy" [size]="13" /> Copy</button>
+                  <button type="button" class="btn btn-outline btn-sm" (click)="recheckEngine()"><app-icon name="rotate-cw" [size]="13" /> Re-check</button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="flex gap-2">
+            <label class="flex-1">
+              <span class="mb-1 block text-xs font-medium text-muted">New text</span>
+              <input type="color" [value]="textColor()" (input)="textColor.set($any($event.target).value)" class="h-8 w-full rounded-[--radius-sm] border border-line bg-surface-2" title="Replacement text colour (browser mode)" />
+            </label>
+            <label class="flex-1">
+              <span class="mb-1 block text-xs font-medium text-muted">Cover</span>
+              <input type="color" [value]="coverColor()" (input)="coverColor.set($any($event.target).value)" class="h-8 w-full rounded-[--radius-sm] border border-line bg-surface-2" title="Colour of the box covering the old text (browser mode)" />
+            </label>
+          </div>
+
+          <label class="flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" [checked]="matchCase()" (change)="matchCase.set($any($event.target).checked)" /> Match case
+          </label>
+          <label class="flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" [checked]="wholeWord()" (change)="wholeWord.set($any($event.target).checked)" /> Whole word only
+          </label>
+
+          @if (serverMode()) {
+            <button type="button" class="btn btn-primary btn-sm w-full" [disabled]="!findText() || serverBusy() || engineStatus() === 'down'" (click)="replaceOnServer()">
+              @if (serverBusy()) { <app-spinner [size]="14" /> } @else { <app-icon name="replace" [size]="14" /> }
+              Replace in document
+            </button>
+            <p class="text-[11px] leading-relaxed text-subtle">
+              Sends this PDF to your local engine on <code>127.0.0.1</code> for a real in-place edit, then re-opens the result here. The file never leaves your machine. Replacement matches the original font weight/style; non-Latin glyphs fall back to a Base-14 font.
+            </p>
+          } @else {
+            <button type="button" class="btn btn-primary btn-sm w-full" [disabled]="!findText() || scanning()" (click)="runFindReplace()">
+              @if (scanning()) { <app-spinner [size]="14" /> } @else { <app-icon name="search" [size]="14" /> }
+              Find &amp; stage (browser)
+            </button>
+          }
+
+          @if (lastScan(); as s) {
+            <p class="text-[11px] text-muted">
+              @if (s.matches) { {{ s.matches }} {{ serverMode() ? 'replaced' : 'staged' }} across {{ s.pages }} page{{ s.pages === 1 ? '' : 's' }} }
+              @else { No matches }
+              @if (s.skipped) { · {{ s.skipped }} skipped }
+            </p>
+          }
+          @if (!serverMode()) {
+            <p class="text-[11px] leading-relaxed text-subtle">
+              Browser fallback: covers each match and types the new text on top (<strong>cover &amp; restamp</strong>) — the original glyphs stay in the file. Matches that span several text runs are handled, positions are glyph-accurate. Review and nudge each one, then Export. Scanned pages, pictures of text and rotated text won't match, and the new font is Helvetica. Leave <em>Replace with</em> blank to redact (cover only). For a real in-place edit, tick <strong>True in-place edit</strong> above.
+            </p>
+          }
+        </div>
+      }
+
+      <div>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-subtle">
+          {{ selected() ? 'Selected' : 'Tool' }}
+        </h2>
+        <div class="mt-1 flex items-center gap-2 text-sm font-medium capitalize">
+          <app-icon [name]="kindIcon()" [size]="16" class="text-accent-soft-fg" />
+          {{ kindLabel() }}
+        </div>
+      </div>
+
+      @if (activeKind() === 'select' && !selected()) {
+        <p class="rounded-[--radius-md] border bg-surface-2 p-3 text-xs text-muted">
+          <strong class="text-fg">Click any text on the page to edit it in place</strong> — a caret appears right there and you type over the original. Or pick a tool on the left, and click an existing edit to move, resize or restyle it.
+        </p>
+      }
+
+      @if (activeKind() === 'image') {
+        <button type="button" class="btn btn-outline btn-sm w-full" (click)="pickImage()"><app-icon name="image-plus" [size]="15" /> Choose image…</button>
+      }
+
+      <!-- Colour -->
+      @if (activeKind() !== 'select' && activeKind() !== 'image') {
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-muted">Colour</span>
+          <input type="color" [value]="style().color" (input)="onColor($any($event.target).value)" class="h-9 w-full rounded-[--radius-sm] border border-line bg-surface-2" />
+        </label>
+      }
+
+      <!-- Opacity (whiteout / highlight) -->
+      @if (activeKind() === 'highlight' || activeKind() === 'whiteout') {
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-muted">Opacity: {{ (style().opacity * 100).toFixed(0) }}%</span>
+          <input type="range" min="0.1" max="1" step="0.05" [value]="style().opacity" (input)="onOpacity(+$any($event.target).value)" class="w-full" />
+        </label>
+      }
+
+      <!-- Stroke width (rect / line / pen) -->
+      @if (activeKind() === 'rect' || activeKind() === 'line' || activeKind() === 'pen') {
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-muted">Thickness: {{ style().strokeWidth }}px</span>
+          <input type="range" min="1" max="20" step="1" [value]="style().strokeWidth" (input)="onStrokeWidth(+$any($event.target).value)" class="w-full" />
+        </label>
+      }
+
+      <!-- Text styling -->
+      @if (activeKind() === 'text') {
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-muted">Font size: {{ style().fontSize }}pt</span>
+          <input type="range" min="8" max="96" step="1" [value]="style().fontSize" (input)="onFontSize(+$any($event.target).value)" class="w-full" />
+        </label>
+        <div>
+          <span class="mb-1 block text-xs font-medium text-muted">Font style</span>
+          <div class="grid grid-cols-3 gap-1 rounded-[--radius-sm] border border-line bg-surface-2 p-0.5">
+            <button type="button" class="btn btn-xs rounded-sm py-1 font-sans capitalize transition"
+              [class.bg-accent]="style().font === 'sans' || !style().font" [class.text-accent-fg]="style().font === 'sans' || !style().font"
+              (click)="onFont('sans')">Sans</button>
+            <button type="button" class="btn btn-xs rounded-sm py-1 font-serif capitalize transition"
+              [class.bg-accent]="style().font === 'serif'" [class.text-accent-fg]="style().font === 'serif'"
+              (click)="onFont('serif')">Serif</button>
+            <button type="button" class="btn btn-xs rounded-sm py-1 font-mono capitalize transition"
+              [class.bg-accent]="style().font === 'mono'" [class.text-accent-fg]="style().font === 'mono'"
+              (click)="onFont('mono')">Mono</button>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" class="btn btn-outline btn-sm flex-1 font-bold" [style.background]="style().bold ? 'var(--accent-soft)' : null" (click)="toggleBold()"><app-icon name="bold" [size]="15" /> Bold</button>
+          <button type="button" class="btn btn-outline btn-sm flex-1 italic" [style.background]="style().italic ? 'var(--accent-soft)' : null" (click)="toggleItalic()"><app-icon name="italic" [size]="15" /> Italic</button>
+        </div>
+        @if (selected()?.type === 'text') {
+          <button type="button" class="btn btn-outline btn-sm w-full" (click)="startEditing(selectedId()!)"><app-icon name="pencil" [size]="15" /> Edit text</button>
+        }
+      }
+
+      @if (selected()) {
+        <button type="button" class="btn btn-outline btn-sm w-full text-danger" (click)="deleteSelected()"><app-icon name="trash" [size]="15" /> Delete selected</button>
+      }
+
+      <div class="mt-auto space-y-3 border-t pt-3">
+        @if (pageAnns().length) {
+          <button type="button" class="btn btn-ghost btn-sm w-full" (click)="clearPage()"><app-icon name="eraser" [size]="15" /> Clear this page ({{ pageAnns().length }})</button>
+        }
+        @if (output().length) {
+          <app-tool-result [outputs]="output()" />
+        }
+        <p class="flex items-start gap-1.5 text-[11px] leading-relaxed text-subtle">
+          <app-icon name="shield" [size]="13" class="mt-0.5 shrink-0" /> Edited entirely in your browser — nothing is uploaded.
+        </p>
+      </div>
+    </aside>
+  </div>
+}
+

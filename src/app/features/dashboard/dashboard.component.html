@@ -1,0 +1,145 @@
+<div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+  <!-- Hero / upload -->
+  <section class="reveal mb-6">
+    <div
+      class="relative flex flex-col gap-4 overflow-hidden rounded-[--radius-xl] border bg-surface p-6 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between"
+      style="background-image: radial-gradient(120% 140% at 100% -10%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 55%), radial-gradient(90% 120% at -5% 110%, color-mix(in oklab, var(--accent) 7%, transparent), transparent 50%)"
+    >
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">{{ greeting() }}</h1>
+        <p class="mt-1 text-sm text-muted">Your documents, tools and editors — all in one local workspace.</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" class="btn btn-primary btn-md" (click)="pickUpload()"><app-icon name="upload" [size]="16" /> Upload files</button>
+          <button type="button" class="btn btn-outline btn-md" (click)="newDoc()"><app-icon name="file-plus" [size]="16" /> New document</button>
+        </div>
+      </div>
+      <div class="w-full sm:max-w-xs">
+        <app-drop-zone [compact]="true" label="Drop files to upload" hint="PDF, images, Office, text…" (filesDropped)="onUpload($event)" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="reveal mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div class="flex items-center gap-3 rounded-[--radius-lg] border bg-surface p-4 shadow-[var(--shadow-xs)]">
+      <span class="grid size-10 shrink-0 place-items-center rounded-[--radius-md] text-accent-soft-fg" style="background: var(--accent-soft)"><app-icon name="files" [size]="18" /></span>
+      <div class="min-w-0">
+        <div class="text-xs text-subtle">Files</div>
+        <div class="text-2xl font-semibold leading-tight tabular-nums">{{ stats().files }}</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 rounded-[--radius-lg] border bg-surface p-4 shadow-[var(--shadow-xs)]">
+      <span class="grid size-10 shrink-0 place-items-center rounded-[--radius-md] text-accent-soft-fg" style="background: var(--accent-soft)"><app-icon name="hard-drive" [size]="18" /></span>
+      <div class="min-w-0">
+        <div class="text-xs text-subtle">Storage used</div>
+        <div class="text-2xl font-semibold leading-tight tabular-nums">{{ formatBytes(stats().size) }}</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 rounded-[--radius-lg] border bg-surface p-4 shadow-[var(--shadow-xs)]">
+      <span class="grid size-10 shrink-0 place-items-center rounded-[--radius-md] text-accent-soft-fg" style="background: var(--accent-soft)"><app-icon name="folder" [size]="18" /></span>
+      <div class="min-w-0">
+        <div class="text-xs text-subtle">Folders</div>
+        <div class="text-2xl font-semibold leading-tight tabular-nums">{{ stats().folders }}</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 rounded-[--radius-lg] border bg-surface p-4 shadow-[var(--shadow-xs)]">
+      <span class="grid size-10 shrink-0 place-items-center rounded-[--radius-md]" style="background: color-mix(in oklab, var(--warning) 16%, transparent); color: var(--warning)"><app-icon name="star" [size]="18" /></span>
+      <div class="min-w-0">
+        <div class="text-xs text-subtle">Starred</div>
+        <div class="text-2xl font-semibold leading-tight tabular-nums">{{ stats().starred }}</div>
+      </div>
+    </div>
+  </section>
+
+  @if (!hasFiles()) {
+    <section class="reveal">
+      <div class="rounded-[--radius-xl] border bg-surface">
+        <app-empty-state icon="files" title="Your library is empty" message="Upload a document or create a new one to get started.">
+          <button type="button" class="btn btn-primary btn-md" (click)="pickUpload()"><app-icon name="upload" [size]="16" /> Upload files</button>
+        </app-empty-state>
+      </div>
+    </section>
+  } @else {
+    <div class="grid gap-5 lg:grid-cols-3">
+      <!-- Recent -->
+      <section class="reveal lg:col-span-2">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-sm font-semibold">Recent documents</h2>
+          <a routerLink="/recent" class="text-xs font-medium text-accent hover:underline">View all</a>
+        </div>
+        @if (recent().length) {
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            @for (file of recent(); track file.id) {
+              <button type="button" (click)="open(file)" class="group flex flex-col items-start gap-2 rounded-[--radius-lg] border bg-surface p-3 text-left transition-all hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[var(--shadow-card)]">
+                <app-file-badge [kind]="file.kind" [size]="40" />
+                <span class="line-clamp-2 w-full text-sm font-medium leading-snug">{{ file.name }}</span>
+                <span class="text-xs text-subtle">{{ relativeTime(file.lastOpenedAt ?? file.updatedAt) }}</span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="rounded-[--radius-lg] border bg-surface p-6 text-center text-sm text-subtle">Open a file and it will appear here.</div>
+        }
+
+        <!-- Quick tools -->
+        <div class="mb-3 mt-6 flex items-center justify-between">
+          <h2 class="text-sm font-semibold">Frequently used tools</h2>
+          <a routerLink="/tools" class="text-xs font-medium text-accent hover:underline">All tools</a>
+        </div>
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          @for (tool of quickTools; track tool.route) {
+            <a [routerLink]="tool.route" class="flex items-center gap-2.5 rounded-[--radius-md] border bg-surface px-3 py-2.5 text-sm font-medium transition-colors hover:border-line-strong hover:bg-surface-2">
+              <span class="grid size-8 place-items-center rounded-[--radius-sm]" style="background: var(--accent-soft); color: var(--accent-soft-fg)"><app-icon [name]="tool.icon" [size]="16" /></span>
+              {{ tool.title }}
+            </a>
+          }
+        </div>
+      </section>
+
+      <!-- Right column -->
+      <section class="reveal flex flex-col gap-5">
+        <!-- Breakdown -->
+        <div class="rounded-[--radius-lg] border bg-surface p-4">
+          <h2 class="mb-1 text-sm font-semibold">File types</h2>
+          <div class="h-56"><app-echart [option]="chartOption()" /></div>
+        </div>
+
+        <!-- Starred -->
+        @if (starred().length) {
+          <div class="rounded-[--radius-lg] border bg-surface p-4">
+            <h2 class="mb-2 text-sm font-semibold">Starred</h2>
+            <div class="flex flex-col gap-1">
+              @for (file of starred(); track file.id) {
+                <button type="button" (click)="open(file)" class="flex items-center gap-2.5 rounded-[--radius-sm] px-2 py-1.5 text-left transition-colors hover:bg-surface-2">
+                  <app-file-badge [kind]="file.kind" [size]="28" />
+                  <span class="min-w-0 flex-1 truncate text-sm">{{ file.name }}</span>
+                  <app-icon name="star" [size]="13" class="text-warning" />
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Activity -->
+        <div class="rounded-[--radius-lg] border bg-surface p-4">
+          <h2 class="mb-2 text-sm font-semibold">Recent activity</h2>
+          @if (activity().length) {
+            <ol class="flex flex-col gap-2.5">
+              @for (event of activity(); track event.id) {
+                <li class="flex items-start gap-2.5 text-sm">
+                  <span class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-surface-2 text-muted"><app-icon [name]="activityIcon(event.type)" [size]="13" /></span>
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate text-fg">{{ event.message }}</div>
+                    <div class="text-xs text-subtle">{{ relativeTime(event.at) }}</div>
+                  </div>
+                </li>
+              }
+            </ol>
+          } @else {
+            <p class="text-sm text-subtle">No activity yet.</p>
+          }
+        </div>
+      </section>
+    </div>
+  }
+</div>

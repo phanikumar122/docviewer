@@ -1,0 +1,233 @@
+<div
+  class="relative h-full"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onContainerDrop($event)"
+>
+  <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <app-page-header [title]="heading().title" [subtitle]="heading().subtitle" [icon]="heading().icon" [crumbs]="crumbs()">
+      <div actions class="flex items-center gap-2">
+        <div class="flex items-center rounded-[--radius-sm] border border-line bg-surface-2 p-0.5">
+          <button type="button" class="btn-icon size-8" [class.bg-surface]="view() === 'grid'" (click)="setView('grid')" title="Grid view">
+            <app-icon name="layout-grid" [size]="16" />
+          </button>
+          <button type="button" class="btn-icon size-8" [class.bg-surface]="view() === 'list'" (click)="setView('list')" title="List view">
+            <app-icon name="list" [size]="16" />
+          </button>
+        </div>
+        @if (mode() === 'all') {
+          <button type="button" class="btn btn-outline btn-sm" (click)="newFolder()"><app-icon name="folder-plus" [size]="16" /> <span class="hidden sm:inline">Folder</span></button>
+        }
+        @if (mode() === 'trash') {
+          <button type="button" class="btn btn-outline btn-sm text-danger" [disabled]="files().length === 0" (click)="selectAll(); deleteForeverSelected()">
+            <app-icon name="trash-empty" [size]="16" /> Empty
+          </button>
+        } @else {
+          <button type="button" class="btn btn-primary btn-sm" (click)="uploadClick()"><app-icon name="upload" [size]="16" /> <span class="hidden sm:inline">Upload</span></button>
+        }
+      </div>
+    </app-page-header>
+
+    <!-- Toolbar -->
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <div class="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[--radius-sm] border border-line bg-surface-2 px-3 sm:max-w-xs">
+        <app-icon name="search" [size]="16" class="text-subtle" />
+        <input type="text" [value]="query()" (input)="query.set($any($event.target).value)" placeholder="Search by name…" class="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-subtle" />
+      </div>
+      <select class="input h-9 w-auto" [value]="kindFilter()" (change)="kindFilter.set($any($event.target).value)">
+        <option value="all">All types</option>
+        @for (k of availableKinds(); track k) {
+          <option [value]="k">{{ kindMeta(k).label }}</option>
+        }
+      </select>
+      <select class="input h-9 w-auto" [value]="sortKey()" (change)="setSort($any($event.target).value)">
+        <option value="updatedAt">Last modified</option>
+        <option value="name">Name</option>
+        <option value="kind">Type</option>
+        <option value="size">Size</option>
+      </select>
+      <button type="button" class="btn-icon size-9 border border-line" (click)="sortDir.set(sortDir() === 'asc' ? 'desc' : 'asc')" [title]="sortDir() === 'asc' ? 'Ascending' : 'Descending'">
+        <app-icon [name]="sortDir() === 'asc' ? 'chevron-up' : 'chevron-down'" [size]="16" />
+      </button>
+    </div>
+
+    <!-- Selection bar -->
+    @if (selectedCount() > 0) {
+      <div class="mb-3 flex flex-wrap items-center gap-2 rounded-[--radius-md] border border-line bg-surface-2 px-3 py-2">
+        <span class="text-sm font-medium">{{ selectedCount() }} selected</span>
+        <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()">Clear</button>
+        <div class="ml-auto flex gap-2">
+          @if (mode() === 'trash') {
+            <button type="button" class="btn btn-outline btn-sm" (click)="restoreSelected()"><app-icon name="archive-restore" [size]="15" /> Restore</button>
+            <button type="button" class="btn btn-sm text-danger" (click)="deleteForeverSelected()"><app-icon name="trash" [size]="15" /> Delete</button>
+          } @else {
+            <button type="button" class="btn btn-outline btn-sm" (click)="moveSelected()"><app-icon name="folder" [size]="15" /> Move</button>
+            <button type="button" class="btn btn-outline btn-sm text-danger" (click)="trashSelected()"><app-icon name="trash" [size]="15" /> Trash</button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Content -->
+    @if (!loaded()) {
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        @for (i of [1,2,3,4,5,6,7,8]; track i) {
+          <div class="h-32 animate-pulse rounded-[--radius-lg] bg-surface-2"></div>
+        }
+      </div>
+    } @else {
+      <!-- Folders -->
+      @if (subFolders().length) {
+        <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          @for (folder of subFolders(); track folder.id) {
+            <button type="button" (click)="openFolder(folder)" class="group flex items-center gap-3 rounded-[--radius-md] border bg-surface p-3 text-left transition-colors hover:border-line-strong">
+              <app-icon name="folder" [size]="22" class="text-accent" />
+              <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ folder.name }}</span>
+              <app-icon name="chevron-right" [size]="16" class="text-subtle" />
+            </button>
+          }
+        </div>
+      }
+
+      @if (files().length === 0 && subFolders().length === 0) {
+        @if (mode() === 'trash') {
+          <app-empty-state icon="trash" title="Trash is empty" message="Items you delete will appear here and can be restored." />
+        } @else if (mode() === 'starred') {
+          <app-empty-state icon="star" title="No starred files" message="Star a file to find it quickly here." />
+        } @else if (mode() === 'recent') {
+          <app-empty-state icon="clock" title="Nothing opened yet" message="Files you open will show up here." />
+        } @else if (query() || kindFilter() !== 'all') {
+          <app-empty-state icon="search" title="No matching files" message="Try a different search or filter." />
+        } @else {
+          <app-empty-state icon="files" title="This folder is empty" message="Drag & drop files here, or upload to get started.">
+            <button type="button" class="btn btn-primary btn-md" (click)="uploadClick()"><app-icon name="upload" [size]="16" /> Upload files</button>
+          </app-empty-state>
+        }
+      } @else {
+        @if (view() === 'grid') {
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            @for (file of files(); track file.id) {
+              <div
+                class="file-card group relative flex cursor-pointer flex-col rounded-[--radius-md] border bg-surface p-3 transition-all hover:-translate-y-0.5"
+                [class.ring-2]="isSelected(file.id)"
+                [style.--tw-ring-color]="'var(--accent)'"
+                (click)="open(file)"
+                (contextmenu)="openMenu($event, file)"
+              >
+                <div class="mb-3 flex items-start justify-between">
+                  <app-file-badge [kind]="file.kind" [size]="40" />
+                  <div class="flex items-center gap-1">
+                    @if (file.starred) {
+                      <app-icon name="star" [size]="15" class="text-warning" />
+                    }
+                    <button
+                      type="button"
+                      class="btn-icon size-7 opacity-0 transition-opacity group-hover:opacity-100"
+                      (click)="$event.stopPropagation(); openMenu($event, file)"
+                      aria-label="More actions"
+                    >
+                      <app-icon name="more-vertical" [size]="16" />
+                    </button>
+                  </div>
+                </div>
+                <div class="min-w-0">
+                  <div class="truncate text-sm font-medium" [title]="file.name">{{ file.name }}</div>
+                  <div class="mt-0.5 flex items-center gap-1.5 text-xs text-subtle">
+                    <span>{{ formatBytes(file.size) }}</span>
+                    <span>·</span>
+                    <span>{{ relativeTime(file.updatedAt) }}</span>
+                  </div>
+                </div>
+                @if (file.isDemo) {
+                  <span class="absolute right-2 top-2 size-1.5 rounded-full bg-accent" title="Demo document"></span>
+                }
+                <button
+                  type="button"
+                  class="absolute left-2 top-2 grid size-5 place-items-center rounded-full border bg-bg-elevated transition-opacity"
+                  [class.opacity-0]="!isSelected(file.id)"
+                  [class.group-hover:opacity-100]="true"
+                  [style.background]="isSelected(file.id) ? 'var(--accent)' : null"
+                  [style.border-color]="isSelected(file.id) ? 'var(--accent)' : null"
+                  (click)="toggleSelect(file.id, $event)"
+                  aria-label="Select"
+                >
+                  @if (isSelected(file.id)) { <app-icon name="check" [size]="12" class="text-white" /> }
+                </button>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="overflow-hidden rounded-[--radius-md] border">
+            <table class="w-full text-sm">
+              <thead class="border-b bg-surface-2 text-left text-xs text-subtle">
+                <tr>
+                  <th class="w-10 px-3 py-2"></th>
+                  <th class="px-3 py-2 font-medium">Name</th>
+                  <th class="hidden px-3 py-2 font-medium sm:table-cell">Type</th>
+                  <th class="hidden px-3 py-2 font-medium md:table-cell">Size</th>
+                  <th class="hidden px-3 py-2 font-medium md:table-cell">Modified</th>
+                  <th class="w-10 px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (file of files(); track file.id) {
+                  <tr
+                    class="group cursor-pointer border-b border-line last:border-0 transition-colors hover:bg-surface-2"
+                    [class.bg-surface-2]="isSelected(file.id)"
+                    (click)="open(file)"
+                    (contextmenu)="openMenu($event, file)"
+                  >
+                    <td class="px-3 py-2" (click)="toggleSelect(file.id, $event)">
+                      <span
+                        class="grid size-5 place-items-center rounded border"
+                        [style.background]="isSelected(file.id) ? 'var(--accent)' : 'transparent'"
+                        [style.border-color]="isSelected(file.id) ? 'var(--accent)' : null"
+                      >
+                        @if (isSelected(file.id)) { <app-icon name="check" [size]="12" class="text-white" /> }
+                      </span>
+                    </td>
+                    <td class="px-3 py-2">
+                      <div class="flex items-center gap-2.5">
+                        <app-file-badge [kind]="file.kind" [size]="30" />
+                        <span class="min-w-0 flex items-center gap-1.5 truncate font-medium">
+                          {{ file.name }}
+                          @if (file.starred) { <app-icon name="star" [size]="13" class="text-warning" /> }
+                        </span>
+                      </div>
+                    </td>
+                    <td class="hidden px-3 py-2 text-subtle sm:table-cell">{{ kindMeta(file.kind).label }}</td>
+                    <td class="hidden px-3 py-2 text-subtle md:table-cell">{{ formatBytes(file.size) }}</td>
+                    <td class="hidden px-3 py-2 text-subtle md:table-cell">{{ relativeTime(file.updatedAt) }}</td>
+                    <td class="px-3 py-2">
+                      <button type="button" class="btn-icon size-7 opacity-0 group-hover:opacity-100" (click)="$event.stopPropagation(); openMenu($event, file)" aria-label="More">
+                        <app-icon name="more-vertical" [size]="16" />
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    }
+  </div>
+
+  <!-- Drag overlay -->
+  @if (dragOver()) {
+    <div class="pointer-events-none absolute inset-3 z-20 grid place-items-center rounded-[--radius-lg] border-2 border-dashed" style="border-color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent)">
+      <div class="flex flex-col items-center gap-2 text-accent">
+        <app-icon name="cloud-upload" [size]="34" />
+        <span class="font-medium">Drop to upload</span>
+      </div>
+    </div>
+  }
+</div>
+
+@if (detailsFile(); as df) {
+  <app-file-details [file]="df" (close)="detailsId.set(null)" />
+}
+
+@if (menu(); as m) {
+  <app-context-menu [x]="m.x" [y]="m.y" [items]="m.items" (closed)="closeMenu()" />
+}
